@@ -22,14 +22,18 @@ tokens = (
  'RBRACE' ,
  'IF'     ,
  'ELSE' ,
- 'FOR'
+ 'FOR' , 
+ 'WHILE' , 
+ 'ADDR_BIT'  
+ 
 )
 
 reserved = {
 'return' : 'RETURN' ,
 'if'     : 'IF' ,
 'else'   : 'ELSE' ,
-'for'    : 'FOR'
+'for'    : 'FOR' , 
+'while'  : 'WHILE'
 }
 
 
@@ -37,6 +41,7 @@ t_PLUS          = r'\+'
 t_SUB           = r'\-'
 t_MUL           = r'\*'
 t_DIV           = r'\/'
+t_ADDR_BIT      = r'\&'
 t_LPAREN        = r'\('
 t_RPAREN        = r'\)'
 t_LESS          = r'\<'
@@ -91,7 +96,7 @@ def  make_token(file_content):
     tok = lexer.token()
 
     if tok.type ==  'eof':
-    	token_list.append(tok)
+        token_list.append(tok)
         break
     token_list.append(tok)
  return token_list

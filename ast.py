@@ -21,6 +21,8 @@ class Ast_Type():
 	COMPOUND_STMT    = 16
 	IF               = 17
 	FOR              = 18
+	DEREF            = 19
+	ADDR             = 20
 
 
 class Ast():
@@ -54,8 +56,10 @@ class Identifier(Ast):
 class Compound_stmt(Ast):
 
   def __init__(self , type , stmt_list):
-  	 self.type = type
-	 self.stmt_list = stmt_list
+  	 #self.type = type
+	 #self.stmt_list = stmt_list
+     self.type = type
+     self.stmt_list = stmt_list
 
 
 
@@ -85,19 +89,19 @@ class Unary(Ast):
 
 class For(Ast):
   def __init__(self , type ,  init , cond , inc , body):
-	        self.type = type
-	   	self.init = init
-                self.cond = cond
-		self.inc  = inc
-	 	self.body = body
+        self.type = type
+        self.init = init
+        self.cond = cond
+        self.inc  = inc
+        self.body = body
 
 
 class If(Ast):
   def __init__(self , type ,  cond , then , els):
-	        self.type = type
-                self.cond = cond
-		self.then = then
-		self.els  = els
+        self.type = type
+        self.cond = cond
+        self.then = then
+        self.els  = els
 
 
 

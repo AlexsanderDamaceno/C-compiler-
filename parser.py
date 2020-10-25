@@ -126,6 +126,14 @@ class Parser():
         if   self.peek().type == 'SUB':
             self.Advance()
             return Ast.Unary(Ast_Type.NEG , self.unary())
+
+        if   self.peek().type == 'MUL':
+            self.Advance()
+            return Ast.Unary(Ast_Type.DEREF , self.unary())  
+        if   self.peek().type == 'ADDR_BIT':
+            self.Advance()
+            return Ast.Unary(Ast_Type.ADDR , self.unary())    
+                  
         return self.primary()
 
 
@@ -202,6 +210,8 @@ class Parser():
                self.Advance()
                els = self.stmt()
            return  Ast.If(Ast_Type.IF , cond , then , els)
+
+
        elif self.peek().type == 'FOR':
 
             self.Advance()
@@ -226,6 +236,24 @@ class Parser():
 
             body  = self.stmt()
             return Ast.For(Ast_Type.FOR  , init , cond , inc , body)
+       
+        # change while to for
+       elif self.peek().type == 'WHILE':
+
+            self.Advance()
+
+            Token = self.Advance()
+            self.check(Token , "LPAREN")
+
+            cond = None
+            cond = self.expr()
+             
+            Token = self.Advance()
+
+            self.check(Token , "RPAREN")
+
+            body  = self.stmt()
+            return Ast.For(Ast_Type.FOR  , None , cond, None , body)    
 
 
 

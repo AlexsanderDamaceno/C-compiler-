@@ -33,6 +33,17 @@ class Code_Gen():
         return
 
 
+     if ast.type == Ast_Type.ADDR:
+       self.get_addr(ast.expr)
+       return
+
+     if ast.type == Ast_Type.DEREF:
+       self.gen_expr(ast.expr)
+       self.append_cmd("mov (%rax) , %rax")
+
+       return 
+
+
      if ast.type == Ast_Type.NEG:
          self.gen_expr(ast.operand)
          self.append_cmd('neg %rax')
