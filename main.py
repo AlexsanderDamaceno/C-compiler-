@@ -1,12 +1,14 @@
 import parser
 import gen
 import subprocess
+import sema
 
 f = open('teste.c' , 'r')
 file_content = f.read()
 
-parser = parser.Parser(file_content)
-ast    = parser.make_ast()
+parser    = parser.Parser(file_content)
+ast       = parser.make_ast()
+
 
 output_file = open('out.s' , 'w')
 

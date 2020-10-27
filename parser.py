@@ -3,8 +3,9 @@ from ast import Ast_Type
 import lex as Tokenizer
 from lex import tokens
 import ply.lex as lex
+import sema
 import sys
-
+from sema import Int_Type
 offset = 0
 
 class Parser():
@@ -14,6 +15,7 @@ class Parser():
         self.source = source
         self.tokens = None
         self.locals = []
+        
 
     def Advance(self):
         if  self.offset >= len(self.tokens):
@@ -41,7 +43,7 @@ class Parser():
         node  = self.equality()
         Token =   self.peek()
 
-        print(Token)
+        
         if Token.type == 'ASSIGN':
 
             self.Advance()
@@ -89,20 +91,77 @@ class Parser():
         return left
 
     def add_sub(self):
-        left  = self.mul_div()
+        node  = self.mul_div()
         Token =   self.peek()
+        
         while Token.type == 'PLUS' or  Token.type == 'SUB':
+           
+           if  Token.type == 'PLUS':
+            
+            
             self.Advance()
-            ty = None
-            if  Token.type == 'PLUS':
-                ty = Ast_Type.PLUS
-            else:
-                ty = Ast_Type.SUB
+            right  = self.mul_div()
+            node   = self.process_add(node , right)
+           else:
+            
+            self.Advance()
+            right  = self.mul_div()
+            node   =  self.process_sub(node , right)
+           Token = self.peek()
+           
 
-            left = Ast.BinOp(left ,  ty  , self.mul_div())
-            Token = self.peek()
+        return node
 
-        return left
+    
+    def process_add(self , left  , right):
+      left  = sema.add_type(left)
+      right = sema.add_type(right) 
+      
+      
+      if sema.is_integer(left)  and sema.is_integer(right):
+           print('')
+           return  Ast.BinOp(left ,  Ast_Type.PLUS  , right)
+
+      
+      if sema.is_ptr(left)  and sema.is_ptr(right):
+           print('invalid operands')
+           sys.exit(-1)
+
+      if   sema.is_ptr(right):
+            tmp   = right
+            right = left 
+            left = tmp
+      right =  Ast.BinOp(right , Ast_Type.MUL   , Ast.Num('8'))
+      return    Ast.BinOp(left , Ast_Type.PLUS   , right)
+
+    def process_sub(self , left , right):
+     
+    
+      
+      left  = sema.add_type(left)
+
+      right = sema.add_type(right) 
+      
+      
+      if sema.is_integer(left)  and sema.is_integer(right):
+           return  Ast.BinOp(left ,  Ast_Type.SUB  , right)
+
+      
+   
+      if sema.is_ptr(left) and sema.is_integer(right):
+        right =  Ast.BinOp(right , Ast_Type.MUL   , Ast.Num('8'))
+        add_type(right)
+        return    Ast.BinOp(left , Ast_Type.SUB   , right)
+
+      if sema.is_ptr(left) and sema.is_ptr(right):
+       
+        node =  Ast.BinOp(left , Ast_Type.SUB   , right)
+        node.kind = sema.Int_Type
+        return    Ast.BinOp(node , Ast_Type.DIV   , Ast.Num('8'))  
+
+        
+
+
 
     def mul_div(self):
         left  = self.unary()
@@ -124,6 +183,8 @@ class Parser():
             self.Advance()
             return self.unary()
         if   self.peek().type == 'SUB':
+            
+            
             self.Advance()
             return Ast.Unary(Ast_Type.NEG , self.unary())
 
@@ -140,7 +201,7 @@ class Parser():
     def primary(self):
 
       Token = self.Advance()
-
+      
       if  Token.type == 'LPAREN':
           ast = self.add_sub()
 
@@ -213,7 +274,6 @@ class Parser():
 
 
        elif self.peek().type == 'FOR':
-
             self.Advance()
 
             Token = self.Advance()
@@ -291,6 +351,8 @@ class Parser():
 
     def make_ast(self):
       self.tokens = Tokenizer.make_token(self.source)
+      
+      
       token = self.Advance()
       self.check(token , 'LBRACE')
 

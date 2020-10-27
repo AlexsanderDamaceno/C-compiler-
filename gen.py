@@ -18,9 +18,14 @@ class Code_Gen():
   def pop(self , reg):
        self.append_cmd('pop %{}'.format(reg))
        return
-  def get_addr(self , var):
+  def get_addr(self , node):
+      
+      if isinstance(node , Ast.Unary):
+       if node.type == Ast_Type.DEREF:
+        self.gen_expr(node.expr)
+        return
 
-      self.append_cmd("lea {}(%rbp) , %rax".format(var.Object.offset))
+      self.append_cmd("lea {}(%rbp) , %rax".format(node.Object.offset))
       return
   def gen_expr(self , ast):
      if isinstance(ast , Ast.Num):
@@ -34,6 +39,7 @@ class Code_Gen():
 
 
      if ast.type == Ast_Type.ADDR:
+       
        self.get_addr(ast.expr)
        return
 
@@ -45,7 +51,7 @@ class Code_Gen():
 
 
      if ast.type == Ast_Type.NEG:
-         self.gen_expr(ast.operand)
+         self.gen_expr(ast.expr)
          self.append_cmd('neg %rax')
          return
 
@@ -68,6 +74,7 @@ class Code_Gen():
 
 
      if ast.type == Ast_Type.PLUS:
+         
          self.append_cmd('add %rdi , %rax')
          return
      elif  ast.type == Ast_Type.SUB:

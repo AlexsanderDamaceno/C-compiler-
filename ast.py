@@ -24,6 +24,12 @@ class Ast_Type():
 	DEREF            = 19
 	ADDR             = 20
 
+class Ast_TypeKind():
+   TY_INT     = 1 
+   TY_POINTER = 2
+
+
+
 
 class Ast():
 	pass
@@ -51,6 +57,7 @@ class Identifier(Ast):
 
   def __init__(self , Object):
   	 self.Object   = Object
+  	 self.kind     = None
 
 
 class Compound_stmt(Ast):
@@ -79,12 +86,15 @@ class BinOp(Ast):
   	  self.left    = left
   	  self.type    = type
   	  self.right   = right
+  	  self.kind    = None
+
 
 class Unary(Ast):
 
   def __init__(self , type  ,  expr):
   	  self.type    = type
-  	  self.expr = expr
+  	  self.expr    = expr
+  	  self.kind    = None
 
 
 class For(Ast):
@@ -110,3 +120,10 @@ class Num(Ast):
 
   def __init__(self ,  value):
 	   self.value  = value
+	   self.kind   = None
+
+
+class Type(Ast):
+  def __init__(self ,  type  , base):
+  	self.type = type
+  	self.base = base
