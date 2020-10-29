@@ -154,7 +154,7 @@ class Parser():
         return    Ast.BinOp(left , Ast_Type.SUB   , right)
 
       if sema.is_ptr(left) and sema.is_ptr(right):
-       
+
         node =  Ast.BinOp(left , Ast_Type.SUB   , right)
         node.kind = sema.Int_Type
         return    Ast.BinOp(node , Ast_Type.DIV   , Ast.Num('8'))  
@@ -215,14 +215,11 @@ class Parser():
         return Ast.Num(Token.value)
       if Token.type  == 'ID':
        for Identifier in self.locals:
-           if Identifier.Object.name == Token.value:
+           if Identifier.Decl.name == Token.value:
+                return Ast.Identifier(Token.value , Identifier.Decl)
+       print("Variable {}  undeclared  at line {} ".format(Token.value , Token.lineno))
+       sys.exit(-1)
 
-                return Ast.Identifier(Identifier.Object)
-
-
-       var =  Ast.Identifier(Ast.Object(Token.value))
-       self.locals.append(var)
-       return var
       self.expected(Token , 'NUMBER or Identifier')
       return
 
@@ -231,14 +228,14 @@ class Parser():
         return  self.assign()
     def expr_stmt(self):
 
-       if self.peek().type == 'COMMA':
+       if self.peek().type == 'SEMICOLON':
            self.Advance()
            return None
 
 
        smt   =  Ast.Unary(Ast_Type.EXPR_STMT , self.expr())
        Token = self.Advance()
-       self.check(Token , 'COMMA' )
+       self.check(Token , 'SEMICOLON' )
        return smt
 
 
@@ -250,7 +247,7 @@ class Parser():
            self.Advance()
            node = Ast.Unary(Ast_Type.RETURN , self.expr())
            token = self.Advance()
-           self.check(token , 'COMMA')
+           self.check(token , 'SEMICOLON')
            return node
        elif  self.peek().type == 'LBRACE':
            self.Advance()
@@ -282,10 +279,10 @@ class Parser():
             init = self.expr_stmt()
 
             cond = None
-            if self.peek().type != 'COMMA':
+            if self.peek().type != 'SEMICOLON':
                 cond = self.expr()
             Token = self.Advance()
-            self.check(Token , "COMMA")
+            self.check(Token , "SEMICOLON")
 
             inc = None
             if self.peek().type != 'RPAREN':
@@ -326,11 +323,89 @@ class Parser():
 
        return self.expr_stmt()
 
+    def declarator(self , base_ty):
+      ty = base_ty 
+      while self.peek().type == 'MUL':
+        self.Advance()
+        ty = sema.pointer_to(ty)
+
+      
+
+      return ty
+
+
+
+        
+
+
+
+    def declaration_specs(self):
+      Token = self.Advance()
+      self.check(Token ,  'INT')
+      return sema.Int_Type
+
+    def declaration(self):   
+      base_ty = self.declaration_specs()
+      
+      depth = 0
+      
+      var_decl_stmt = [] 
+    
+      while not self.peek().type == 'SEMICOLON':
+         
+
+          if depth > 0:
+             Token.Advance()
+             self.check(Token , 'COMMA')
+             depth += 1 
+
+         
+          ty = self.declarator(base_ty)
+
+          Token =  self.Advance() 
+         
+           
+         
+          self.check(Token , 'ID')
+
+          var = Ast.Identifier(Token.value ,  Ast.Decl(Token.value , ty))
+          self.locals.append(var)
+          
+          if self.peek().type != 'ASSIGN':
+             continue
+          self.Advance()
+
+          left  =  var 
+          right =  self.assign()
+         
+          var_decl_stmt.append(Ast.Unary(Ast_Type.EXPR_STMT , Ast.Assign(left , Ast_Type.ASSIGN  , right)))
+
+         
+     
+     
+      self.Advance()   
+
+      return var_decl_stmt        
+    
+         
+          
+             
+
+          
+
+
     def compound_stmt(self):
            stmt_list  = []
            while self.peek().type != 'RBRACE':
-                 stmt_list.append(self.stmt())
+                 if self.peek().type == 'INT':
+                    decls = self.declaration()
+                    for decl in decls:
+           
+                       stmt_list.append(decl)
+                 else:   
+                       stmt_list.append(self.stmt())
            self.Advance()
+           
            return Ast.Compound_stmt(Ast_Type.COMPOUND_STMT , stmt_list)
 
 

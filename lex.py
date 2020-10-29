@@ -14,7 +14,7 @@ tokens = (
  'GREATER_EQUAL' ,
  'EQUAL_EQUAL' ,
  'NOT_EQUAL' ,
- 'COMMA' ,
+ 'SEMICOLON' ,
  'ID' ,
  'ASSIGN' ,
  'RETURN' ,
@@ -24,7 +24,9 @@ tokens = (
  'ELSE' ,
  'FOR' , 
  'WHILE' , 
- 'ADDR_BIT'  
+ 'ADDR_BIT' ,   
+ 'INT' , 
+ 'COMMA'
  
 )
 
@@ -33,7 +35,8 @@ reserved = {
 'if'     : 'IF' ,
 'else'   : 'ELSE' ,
 'for'    : 'FOR' , 
-'while'  : 'WHILE'
+'while'  : 'WHILE' , 
+'int'    : 'INT'
 }
 
 
@@ -50,10 +53,11 @@ t_GREATER       = r'\>'
 t_GREATER_EQUAL = r'\>='
 t_EQUAL_EQUAL   = r'\=='
 t_NOT_EQUAL     = r'\!='
-t_COMMA         = r'\;'
+t_SEMICOLON     = r'\;'
 t_ASSIGN        = r'\='
 t_LBRACE        = r'\{'
 t_RBRACE        = r'\}'
+t_COMMA         = r'\,'
 
 digit           = r'([0-9])'
 nondigit        = r'([_A-Za-z])'

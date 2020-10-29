@@ -49,15 +49,22 @@ class Function(Ast):
 
 
 class Object():
-  def __init__(self , name):
-	  self.name = name
-	  self.offset = -1
+  def __init__(self , name , ty):
+  	   self.ty     =  ty
+  	  
 
+class Decl():
+	def __init__(self , name , ty):
+	  self.name   = name
+	  self.ty     = ty
+	  self.offset = -1
+   
 class Identifier(Ast):
 
-  def __init__(self , Object):
-  	 self.Object   = Object
-  	 self.kind     = None
+  def __init__(self ,  name  , decl):
+  	 self.name   = name
+  	 self.Decl   = decl
+  	
 
 
 class Compound_stmt(Ast):

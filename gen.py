@@ -24,8 +24,8 @@ class Code_Gen():
        if node.type == Ast_Type.DEREF:
         self.gen_expr(node.expr)
         return
-
-      self.append_cmd("lea {}(%rbp) , %rax".format(node.Object.offset))
+      
+      self.append_cmd("lea {}(%rbp) , %rax".format(node.Decl.offset))
       return
   def gen_expr(self , ast):
      if isinstance(ast , Ast.Num):
@@ -58,6 +58,7 @@ class Code_Gen():
 
 
      if isinstance(ast , Ast.Assign):
+           
             self.get_addr(ast.left)
             self.push('rax')
             self.gen_expr(ast.right)
@@ -111,8 +112,11 @@ class Code_Gen():
 
      return
   def make_stmt(self , ast):
-
+          
+          
+         
           if ast.type == Ast_Type.RETURN:
+
                self.gen_expr(ast.expr)
                self.append_cmd("jmp .L.return")
                return
@@ -139,7 +143,7 @@ class Code_Gen():
                     return
 
           if ast.type == Ast_Type.FOR:
-
+ 
                      self.labelnum += 1
                      label_num = self.labelnum
                      if ast.init != None:
@@ -166,15 +170,18 @@ class Code_Gen():
               if stmt != None:
                 self.make_stmt(stmt)
           return
-
+  
 
   def determine_var_offset(self , locals):
       offset = 0
       for var in self.function.locals:
 
           offset += 8
-          var.Object.offset = -offset
+          var.Decl.offset = -offset
+          
+          
 
+      
       return offset
 
 
@@ -182,6 +189,7 @@ class Code_Gen():
        stack_size =  self.determine_var_offset(self.function.locals)
        self.function.stack_size = stack_size
        self.append_cmd("sub ${} , %rsp".format(self.function.stack_size))
+     
 
        self.make_stmt(self.function.body)
        return self.code
