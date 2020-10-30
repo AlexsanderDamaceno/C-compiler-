@@ -47,15 +47,19 @@ class Code_Gen():
 
      if isinstance(ast , Ast.Function_Call):
 
-          for arg in ast.args:
-              self.gen_expr(arg)
-          if len(ast.args) > 0:
-           for i in range(len(ast.args) , -1 , -1):
+         for arg in ast.args:
+             self.gen_expr(arg)
+             self.push('rax')
+
+         if len(ast.args) > 0:
+
+
+            for i in range(len(ast.args)-1 , 0 , -1):
               self.pop(self.reg_args[i])
 
-          self.append_cmd("  mov $0 , %rax")
-          self.append_cmd("  call {}".format(ast.name))
-          return
+         self.append_cmd("  mov $0 , %rax")
+         self.append_cmd("  call {}".format(ast.name))
+         return
 
 
      if ast.type == Ast_Type.ADDR:
@@ -218,7 +222,12 @@ class Code_Gen():
 
          self.append_cmd("  push %rbp")
          self.append_cmd("  mov %rsp , %rbp".format(function.func_name))
-         print(function.stack_size)
+         i = 0
+         for param in function.params:
+
+              self.append_cmd("  mov %{} , {}(%rbp)".format(self.reg_args[i] , param.Decl.offset))
+              i += 1
+
          self.append_cmd("sub ${} , %rsp".format(function.stack_size))
 
          self.make_stmt(function.body)

@@ -44,8 +44,9 @@ class Function_Call():
 
 
 class Function(Ast):
-	def __init__(self, func_name , ty , body  , locals):
+	def __init__(self, func_name , params , ty , body  , locals):
 		self.func_name  = func_name
+		self.params     = params
 		self.ty         = ty
 		self.body       = body
 		self.locals     = locals

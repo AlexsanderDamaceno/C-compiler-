@@ -117,7 +117,7 @@ class Parser():
           return Ast.Num(str(int(left.value) + int(right.value)))
 
       left  = sema.add_type(left)
-     
+
       right = sema.add_type(right)
 
 
@@ -448,6 +448,30 @@ class Parser():
 
            return Ast.Compound_stmt(Ast_Type.COMPOUND_STMT , stmt_list)
 
+
+    def params(self):
+        params_list = []
+        depth = 0
+        while self.peek().type != 'RPAREN':
+            if depth > 0:
+                 self.check(self.Advance() , 'COMMA')
+            depth += 1     
+
+            base_ty = self.declaration_specs()
+            ty      = self.declarator(base_ty)
+
+
+
+            name = self.Advance()
+            self.check(name ,   'ID')
+            node = Ast.Identifier(name.value ,  Ast.Decl(name.value , ty))
+            params_list.append(node)
+            self.locals.append(node)
+        self.check(self.Advance() , 'RPAREN')
+        return params_list
+
+
+
     def function(self):
 
        ty = self.declaration_specs()
@@ -457,12 +481,11 @@ class Parser():
        self.check(func_name , 'ID')
 
        self.check(self.Advance() , 'LPAREN')
-       self.check(self.Advance() , 'RPAREN')
-
+       params = self.params()
        self.check(self.Advance() , 'LBRACE')
        body = self.compound_stmt()
        locals = self.locals
-       return Ast.Function(func_name.value , ty , body , locals)
+       return Ast.Function(func_name.value , params,  ty , body , locals)
 
 
 
