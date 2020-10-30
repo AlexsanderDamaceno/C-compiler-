@@ -15,7 +15,7 @@ class Parser():
         self.source = source
         self.tokens = None
         self.locals = []
-        
+
 
     def Advance(self):
         if  self.offset >= len(self.tokens):
@@ -43,7 +43,7 @@ class Parser():
         node  = self.equality()
         Token =   self.peek()
 
-        
+
         if Token.type == 'ASSIGN':
 
             self.Advance()
@@ -93,61 +93,65 @@ class Parser():
     def add_sub(self):
         node  = self.mul_div()
         Token =   self.peek()
-        
+
         while Token.type == 'PLUS' or  Token.type == 'SUB':
-           
+
            if  Token.type == 'PLUS':
-            
-            
+
             self.Advance()
             right  = self.mul_div()
             node   = self.process_add(node , right)
            else:
-            
             self.Advance()
             right  = self.mul_div()
             node   =  self.process_sub(node , right)
            Token = self.peek()
-           
+
 
         return node
 
-    
+
     def process_add(self , left  , right):
+
+      if isinstance(left , Ast.Num) and isinstance(right  , Ast.Num):
+          return Ast.Num(str(int(left.value) + int(right.value)))
+
       left  = sema.add_type(left)
-      right = sema.add_type(right) 
-      
-      
+     
+      right = sema.add_type(right)
+
+
       if sema.is_integer(left)  and sema.is_integer(right):
            print('')
            return  Ast.BinOp(left ,  Ast_Type.PLUS  , right)
 
-      
+
       if sema.is_ptr(left)  and sema.is_ptr(right):
            print('invalid operands')
            sys.exit(-1)
 
       if   sema.is_ptr(right):
             tmp   = right
-            right = left 
+            right = left
             left = tmp
       right =  Ast.BinOp(right , Ast_Type.MUL   , Ast.Num('8'))
       return    Ast.BinOp(left , Ast_Type.PLUS   , right)
 
     def process_sub(self , left , right):
-     
-    
-      
+
+      if isinstance(left , Ast.Num) and isinstance(right  , Ast.Num):
+          return Ast.Num(str(int(left.value) - int(right.value)))
+
       left  = sema.add_type(left)
 
-      right = sema.add_type(right) 
-      
-      
+      right = sema.add_type(right)
+
+
       if sema.is_integer(left)  and sema.is_integer(right):
            return  Ast.BinOp(left ,  Ast_Type.SUB  , right)
 
-      
-   
+
+
       if sema.is_ptr(left) and sema.is_integer(right):
         right =  Ast.BinOp(right , Ast_Type.MUL   , Ast.Num('8'))
         add_type(right)
@@ -157,51 +161,79 @@ class Parser():
 
         node =  Ast.BinOp(left , Ast_Type.SUB   , right)
         node.kind = sema.Int_Type
-        return    Ast.BinOp(node , Ast_Type.DIV   , Ast.Num('8'))  
+        return    Ast.BinOp(node , Ast_Type.DIV   , Ast.Num('8'))
 
-        
+
 
 
 
     def mul_div(self):
-        left  = self.unary()
+        node  = self.unary()
         Token =   self.peek()
         while Token.type == 'MUL' or  Token.type == 'DIV':
+
             self.Advance()
             ty = None
             if  Token.type == 'MUL':
                 ty = Ast_Type.MUL
             else:
                 ty = Ast_Type.DIV
-            left = Ast.BinOp(left , ty  , self.unary())
+            right = self.unary()
+
+            if isinstance(node , Ast.Num) and isinstance(right  , Ast.Num):
+              if ty == Ast_Type.MUL:
+                  node =  Ast.Num(str(int(node.value) * int(right.value)))
+              else:
+                  node  =  Ast.Num(str(int(node.value) / int(right.value)))
+              Token = self.peek()
+              continue
+
+
+
+            node = Ast.BinOp(node , ty  ,  right )
 
             Token = self.peek()
-        return left
+        return node
 
     def unary(self):
         if   self.peek().type == 'PLUS':
             self.Advance()
             return self.unary()
         if   self.peek().type == 'SUB':
-            
-            
+
+
             self.Advance()
             return Ast.Unary(Ast_Type.NEG , self.unary())
 
         if   self.peek().type == 'MUL':
             self.Advance()
-            return Ast.Unary(Ast_Type.DEREF , self.unary())  
+            return Ast.Unary(Ast_Type.DEREF , self.unary())
         if   self.peek().type == 'ADDR_BIT':
             self.Advance()
-            return Ast.Unary(Ast_Type.ADDR , self.unary())    
-                  
+            return Ast.Unary(Ast_Type.ADDR , self.unary())
+
         return self.primary()
 
+
+
+    def funcall(self , func_name):
+        args = []
+        depth = 0
+        while self.peek().type != 'RPAREN':
+            if depth > 0:
+                self.check(self.Advance() , 'COMMA')
+
+            args.append(self.assign())
+            depth += 1
+
+        self.Advance()
+        node = Ast.Function_Call(func_name , args)
+        return node
 
     def primary(self):
 
       Token = self.Advance()
-      
+
       if  Token.type == 'LPAREN':
           ast = self.add_sub()
 
@@ -211,9 +243,13 @@ class Parser():
 
       if Token.type  == 'NUMBER':
         return Ast.Num(Token.value)
-      if Token.type  == 'NUMBER':
-        return Ast.Num(Token.value)
       if Token.type  == 'ID':
+
+       if self.peek().type == 'LPAREN':
+          self.Advance()
+          return self.funcall(Token.value)
+
+
        for Identifier in self.locals:
            if Identifier.Decl.name == Token.value:
                 return Ast.Identifier(Token.value , Identifier.Decl)
@@ -293,7 +329,7 @@ class Parser():
 
             body  = self.stmt()
             return Ast.For(Ast_Type.FOR  , init , cond , inc , body)
-       
+
         # change while to for
        elif self.peek().type == 'WHILE':
 
@@ -304,13 +340,13 @@ class Parser():
 
             cond = None
             cond = self.expr()
-             
+
             Token = self.Advance()
 
             self.check(Token , "RPAREN")
 
             body  = self.stmt()
-            return Ast.For(Ast_Type.FOR  , None , cond, None , body)    
+            return Ast.For(Ast_Type.FOR  , None , cond, None , body)
 
 
 
@@ -323,19 +359,23 @@ class Parser():
 
        return self.expr_stmt()
 
+    #def suffix(self):
+    #    if self.peek().type == 'LPAREN':
+
     def declarator(self , base_ty):
-      ty = base_ty 
+      ty = base_ty
       while self.peek().type == 'MUL':
         self.Advance()
         ty = sema.pointer_to(ty)
 
-      
+
 
       return ty
 
 
 
-        
+
+
 
 
 
@@ -344,54 +384,54 @@ class Parser():
       self.check(Token ,  'INT')
       return sema.Int_Type
 
-    def declaration(self):   
+    def declaration(self):
       base_ty = self.declaration_specs()
-      
+
       depth = 0
-      
-      var_decl_stmt = [] 
-    
+
+      var_decl_stmt = []
+
       while not self.peek().type == 'SEMICOLON':
-         
+
 
           if depth > 0:
              Token.Advance()
              self.check(Token , 'COMMA')
-             depth += 1 
+             depth += 1
 
-         
+
           ty = self.declarator(base_ty)
 
-          Token =  self.Advance() 
-         
-           
-         
+          Token =  self.Advance()
+
+
+
           self.check(Token , 'ID')
 
           var = Ast.Identifier(Token.value ,  Ast.Decl(Token.value , ty))
           self.locals.append(var)
-          
+
           if self.peek().type != 'ASSIGN':
              continue
           self.Advance()
 
-          left  =  var 
+          left  =  var
           right =  self.assign()
-         
+
           var_decl_stmt.append(Ast.Unary(Ast_Type.EXPR_STMT , Ast.Assign(left , Ast_Type.ASSIGN  , right)))
 
-         
-     
-     
-      self.Advance()   
 
-      return var_decl_stmt        
-    
-         
-          
-             
 
-          
+
+      self.Advance()
+
+      return var_decl_stmt
+
+
+
+
+
+
 
 
     def compound_stmt(self):
@@ -400,36 +440,40 @@ class Parser():
                  if self.peek().type == 'INT':
                     decls = self.declaration()
                     for decl in decls:
-           
+
                        stmt_list.append(decl)
-                 else:   
+                 else:
                        stmt_list.append(self.stmt())
            self.Advance()
-           
+
            return Ast.Compound_stmt(Ast_Type.COMPOUND_STMT , stmt_list)
 
+    def function(self):
+
+       ty = self.declaration_specs()
+       ty = self.declarator(ty)
+
+       func_name = self.Advance()
+       self.check(func_name , 'ID')
+
+       self.check(self.Advance() , 'LPAREN')
+       self.check(self.Advance() , 'RPAREN')
+
+       self.check(self.Advance() , 'LBRACE')
+       body = self.compound_stmt()
+       locals = self.locals
+       return Ast.Function(func_name.value , ty , body , locals)
 
 
 
 
-
-    def  print_ast(self, ast):
-          if isinstance(ast , Ast.Num):
-              print("number: ".format(ast.value))
-              return
-          print_ast(ast.left)
-          print_ast(ast.right)
-          print('+')
-          return
 
 
 
     def make_ast(self):
       self.tokens = Tokenizer.make_token(self.source)
-      
-      
-      token = self.Advance()
-      self.check(token , 'LBRACE')
-
-      #self.print_ast(self.add())
-      return Ast.Function(self.compound_stmt() , self.locals)
+      function_list = []
+      while self.peek().type != 'eof':
+          function_list.append(self.function())
+          self.locals = []
+      return function_list

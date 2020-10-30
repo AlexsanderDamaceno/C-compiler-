@@ -14,17 +14,15 @@ output_file = open('out.s' , 'w')
 
 
 
-code = '.globl main' + "\n"
-code += 'main:' + "\n"
-code += 'push %rbp' + "\n"
-code += 'mov %rsp , %rbp' + "\n"
+code_gen = gen.Code_Gen(ast)
+code     = code_gen.make_gen()
+
+
 
 code_gen = gen.Code_Gen(ast)
-code     += code_gen.make_gen()
-code += ".L.return:"  + "\n"
-code += 'mov %rbp , %rsp' + "\n"
-code += 'pop %rbp' + "\n"
-code += 'ret' + "\n"
+code     = code_gen.make_gen()
+
+
 print(code)
 output_file.write(code)
 

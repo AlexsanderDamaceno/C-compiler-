@@ -1,10 +1,24 @@
-{
-int a = 1;
-int b = a + 1; 
-int c = 1+a+b; 
-int d = 1+a+b+c; 
-return d; 
 
+int f2(){
+
+  int  a = 0;
+  int count = 0;
+  for(count = 0; count < 10; count = count + 1){
+    a =  a + 1;
+  }
+
+  return a;
+
+}
+
+int f(){
+
+  return ((20*20)/(100+100)) + f2();
+}
+
+int main(){
+
+  return (10 + f())/22;
 
 
 }

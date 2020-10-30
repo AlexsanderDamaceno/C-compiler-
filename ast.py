@@ -23,10 +23,12 @@ class Ast_Type():
 	FOR              = 18
 	DEREF            = 19
 	ADDR             = 20
+	AST_FUNCALL      = 21
 
 class Ast_TypeKind():
-   TY_INT     = 1 
-   TY_POINTER = 2
+   TY_INT       = 1
+   TY_POINTER   = 2
+   TY_FUNCTION  = 3
 
 
 
@@ -35,14 +37,16 @@ class Ast():
 	pass
 
 
-
-
-
-
+class Function_Call():
+   def __init__(self, name , args):
+	    self.name = name
+	    self.args = args
 
 
 class Function(Ast):
-	def __init__(self, body  , locals):
+	def __init__(self, func_name , ty , body  , locals):
+		self.func_name  = func_name
+		self.ty         = ty
 		self.body       = body
 		self.locals     = locals
 		self.stack_size = 0
@@ -51,20 +55,20 @@ class Function(Ast):
 class Object():
   def __init__(self , name , ty):
   	   self.ty     =  ty
-  	  
+
 
 class Decl():
 	def __init__(self , name , ty):
 	  self.name   = name
 	  self.ty     = ty
 	  self.offset = -1
-   
+
 class Identifier(Ast):
 
   def __init__(self ,  name  , decl):
   	 self.name   = name
   	 self.Decl   = decl
-  	
+
 
 
 class Compound_stmt(Ast):
