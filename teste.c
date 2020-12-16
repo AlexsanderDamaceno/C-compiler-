@@ -1,12 +1,6 @@
-
-int f(int a , int b){
-  return a + b;
-
-}
-
 int main(){
-
- return f(3,4)+1;
-
-
+  int c[2][2];  
+  c[2][2] = 1; 
+  a = sizeof(c);
+  return   a;
 }

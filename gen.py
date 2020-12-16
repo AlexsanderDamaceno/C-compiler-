@@ -25,52 +25,66 @@ class Code_Gen():
   def pop(self , reg):
        self.append_cmd('  pop %{}'.format(reg))
        return
-  def get_addr(self , node):
 
+  def load(self , Type):
+      if Type.type == Ast.Ast_TypeKind.TY_ARRAY:
+         
+          return
+
+      self.append_cmd("  mov (%rax), %rax")
+      return
+
+  def get_addr(self , node):
+       
       if isinstance(node , Ast.Unary):
        if node.type == Ast_Type.DEREF:
+
+       
         self.gen_expr(node.expr)
         return
-
+      
       self.append_cmd("  lea {}(%rbp) , %rax".format(node.Decl.offset))
       return
   def gen_expr(self , ast):
+   
      if isinstance(ast , Ast.Num):
          self.append_cmd("  mov ${} , %rax".format(ast.value))
          return
      if isinstance(ast , Ast.Identifier):
-
+       
         self.get_addr(ast)
-        self.append_cmd("  mov (%rax), %rax")
+        self.load(ast.kind)      
         return
 
 
      if isinstance(ast , Ast.Function_Call):
 
          for arg in ast.args:
+
              self.gen_expr(arg)
              self.push('rax')
 
          if len(ast.args) > 0:
 
 
-            for i in range(len(ast.args)-1 , 0 , -1):
+            for i in range(len(ast.args)-1 , -1 , -1):
               self.pop(self.reg_args[i])
 
          self.append_cmd("  mov $0 , %rax")
          self.append_cmd("  call {}".format(ast.name))
          return
 
-
+         
      if ast.type == Ast_Type.ADDR:
 
        self.get_addr(ast.expr)
        return
 
      if ast.type == Ast_Type.DEREF:
+       
        self.gen_expr(ast.expr)
-       self.append_cmd("  mov (%rax) , %rax")
 
+       self.load(ast.kind)
        return
 
 
@@ -83,8 +97,9 @@ class Code_Gen():
 
 
      if isinstance(ast , Ast.Assign):
-
+          
             self.get_addr(ast.left)
+            
             self.push('  rax')
             self.gen_expr(ast.right)
             self.pop('  rdi')
@@ -146,6 +161,7 @@ class Code_Gen():
                self.append_cmd("  jmp .L.return.{}".format(self.current_func.func_name))
                return
           if ast.type == Ast_Type.EXPR_STMT:
+
               self.gen_expr(ast.expr)
               return
 
@@ -202,10 +218,10 @@ class Code_Gen():
     for  function in self.prog:
       offset = 0
       for var in function.locals:
-          offset += 8
+          offset += var.Decl.ty.size
           var.Decl.offset = -offset
       function.stack_size = self.stack_align(offset , 16)
-      print(function.stack_size)
+      
     return
 
 

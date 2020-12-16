@@ -23,7 +23,7 @@ code_gen = gen.Code_Gen(ast)
 code     = code_gen.make_gen()
 
 
-print(code)
+
 output_file.write(code)
 
 #output_file.write('ret' + "\n")

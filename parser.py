@@ -112,7 +112,7 @@ class Parser():
 
 
     def process_add(self , left  , right):
-
+      
       if isinstance(left , Ast.Num) and isinstance(right  , Ast.Num):
           return Ast.Num(str(int(left.value) + int(right.value)))
 
@@ -120,12 +120,13 @@ class Parser():
 
       right = sema.add_type(right)
 
-
+     
+      
       if sema.is_integer(left)  and sema.is_integer(right):
-           print('')
+           
            return  Ast.BinOp(left ,  Ast_Type.PLUS  , right)
 
-
+     
       if sema.is_ptr(left)  and sema.is_ptr(right):
            print('invalid operands')
            sys.exit(-1)
@@ -134,7 +135,10 @@ class Parser():
             tmp   = right
             right = left
             left = tmp
-      right =  Ast.BinOp(right , Ast_Type.MUL   , Ast.Num('8'))
+      
+
+      right =  Ast.BinOp(right , Ast_Type.MUL   , Ast.Num(left.kind.base.size))
+      
       return    Ast.BinOp(left , Ast_Type.PLUS   , right)
 
     def process_sub(self , left , right):
@@ -153,15 +157,15 @@ class Parser():
 
 
       if sema.is_ptr(left) and sema.is_integer(right):
-        right =  Ast.BinOp(right , Ast_Type.MUL   , Ast.Num('8'))
+        right =  Ast.BinOp(right , Ast_Type.MUL   , Ast.Num(left.Decl.base.size))
         add_type(right)
         return    Ast.BinOp(left , Ast_Type.SUB   , right)
 
       if sema.is_ptr(left) and sema.is_ptr(right):
 
         node =  Ast.BinOp(left , Ast_Type.SUB   , right)
-        node.kind = sema.Int_Type
-        return    Ast.BinOp(node , Ast_Type.DIV   , Ast.Num('8'))
+        add_type(node)
+        return    Ast.BinOp(node , Ast_Type.DIV   , Ast.Num(left.Decl.base.size))
 
 
 
@@ -210,10 +214,23 @@ class Parser():
             return Ast.Unary(Ast_Type.DEREF , self.unary())
         if   self.peek().type == 'ADDR_BIT':
             self.Advance()
+
             return Ast.Unary(Ast_Type.ADDR , self.unary())
 
-        return self.primary()
+        return self.suffix()
 
+
+    def suffix(self):
+        node = self.primary()
+        
+        while self.peek().type == 'LBRACKET':
+          self.Advance()
+          index = self.expr()
+          self.check(self.peek() , 'RBRACKET')
+          node = Ast.Unary(Ast_Type.DEREF  , self.process_add(node , index))
+          self.Advance()
+
+        return node
 
 
     def funcall(self , func_name):
@@ -243,11 +260,21 @@ class Parser():
 
       if Token.type  == 'NUMBER':
         return Ast.Num(Token.value)
+
+     
+      if Token.type == 'SIZEOF':
+          
+          node = self.unary()
+          sema.add_type(node)
+          return Ast.Num(node.kind.size)    
+
+
       if Token.type  == 'ID':
 
        if self.peek().type == 'LPAREN':
           self.Advance()
           return self.funcall(Token.value)
+
 
 
        for Identifier in self.locals:
@@ -362,15 +389,50 @@ class Parser():
     #def suffix(self):
     #    if self.peek().type == 'LPAREN':
 
+
+    def get_number(self):
+      self.check(self.peek() , 'NUMBER')
+      return self.Advance().value
+
+    def type_suffix(self , ty):
+        
+       
+           
+          
+
+        if self.peek().type == 'LBRACKET':
+           self.Advance()
+           size  = self.get_number()
+           self.check(self.peek() , 'RBRACKET')
+           self.Advance()
+           ty  = self.type_suffix(ty)
+           return sema.array_of(ty , int(size)) 
+          
+        return ty   
+
+
+
+
     def declarator(self , base_ty):
       ty = base_ty
       while self.peek().type == 'MUL':
         self.Advance()
         ty = sema.pointer_to(ty)
 
+      self.check(self.peek() , 'ID')
+      
+      name = self.Advance()
+     
 
-
+      
+      ty  = self.type_suffix(ty)
+     
+      ty.name =  name
       return ty
+
+
+
+      
 
 
 
@@ -395,21 +457,16 @@ class Parser():
 
 
           if depth > 0:
-             Token.Advance()
+             Token = Token.Advance()
              self.check(Token , 'COMMA')
              depth += 1
-
+         
 
           ty = self.declarator(base_ty)
 
-          Token =  self.Advance()
-
-
-
-          self.check(Token , 'ID')
-
-          var = Ast.Identifier(Token.value ,  Ast.Decl(Token.value , ty))
+          var = Ast.Identifier(ty.name.value ,  Ast.Decl(ty.name.value, ty))
           self.locals.append(var)
+
 
           if self.peek().type != 'ASSIGN':
              continue
@@ -418,7 +475,9 @@ class Parser():
           left  =  var
           right =  self.assign()
 
+
           var_decl_stmt.append(Ast.Unary(Ast_Type.EXPR_STMT , Ast.Assign(left , Ast_Type.ASSIGN  , right)))
+
 
 
 
@@ -441,9 +500,16 @@ class Parser():
                     decls = self.declaration()
                     for decl in decls:
 
+                       decl = sema.add_type(decl) 
+
+                       
+
                        stmt_list.append(decl)
                  else:
-                       stmt_list.append(self.stmt())
+
+                       stmt = sema.add_type(self.stmt())
+                      
+                       stmt_list.append(stmt)
            self.Advance()
 
            return Ast.Compound_stmt(Ast_Type.COMPOUND_STMT , stmt_list)
@@ -459,12 +525,9 @@ class Parser():
 
             base_ty = self.declaration_specs()
             ty      = self.declarator(base_ty)
-
-
-
-            name = self.Advance()
-            self.check(name ,   'ID')
-            node = Ast.Identifier(name.value ,  Ast.Decl(name.value , ty))
+            
+            
+            node = Ast.Identifier(ty.name.value ,  Ast.Decl(ty.name.value , ty))
             params_list.append(node)
             self.locals.append(node)
         self.check(self.Advance() , 'RPAREN')
@@ -476,16 +539,18 @@ class Parser():
 
        ty = self.declaration_specs()
        ty = self.declarator(ty)
-
-       func_name = self.Advance()
-       self.check(func_name , 'ID')
-
-       self.check(self.Advance() , 'LPAREN')
+       f_name = ty.name.value
+      
+       
+       self.check(self.peek() , 'LPAREN')
+       self.Advance()
        params = self.params()
+       
        self.check(self.Advance() , 'LBRACE')
        body = self.compound_stmt()
        locals = self.locals
-       return Ast.Function(func_name.value , params,  ty , body , locals)
+       
+       return Ast.Function(f_name , params,  ty , body , locals)
 
 
 

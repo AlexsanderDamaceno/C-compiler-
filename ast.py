@@ -29,6 +29,7 @@ class Ast_TypeKind():
    TY_INT       = 1
    TY_POINTER   = 2
    TY_FUNCTION  = 3
+   TY_ARRAY     = 4
 
 
 
@@ -68,7 +69,10 @@ class Identifier(Ast):
 
   def __init__(self ,  name  , decl):
   	 self.name   = name
+  	 self.kind   = decl.ty
   	 self.Decl   = decl
+
+
 
 
 
@@ -136,6 +140,9 @@ class Num(Ast):
 
 
 class Type(Ast):
-  def __init__(self ,  type  , base):
+  def __init__(self ,  type  , base , size):
   	self.type = type
   	self.base = base
+  	self.size = size
+  	self.array_len = 0
+  	self.name = None

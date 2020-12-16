@@ -26,7 +26,10 @@ tokens = (
  'WHILE' , 
  'ADDR_BIT' ,   
  'INT' , 
- 'COMMA'
+ 'COMMA' , 
+ 'LBRACKET' , 
+ 'RBRACKET' , 
+ 'SIZEOF'
  
 )
 
@@ -36,7 +39,8 @@ reserved = {
 'else'   : 'ELSE' ,
 'for'    : 'FOR' , 
 'while'  : 'WHILE' , 
-'int'    : 'INT'
+'int'    : 'INT' , 
+'sizeof' : 'SIZEOF'
 }
 
 
@@ -58,6 +62,8 @@ t_ASSIGN        = r'\='
 t_LBRACE        = r'\{'
 t_RBRACE        = r'\}'
 t_COMMA         = r'\,'
+t_LBRACKET        = r'\['
+t_RBRACKET        = r'\]'
 
 digit           = r'([0-9])'
 nondigit        = r'([_A-Za-z])'
