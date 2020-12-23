@@ -69,11 +69,16 @@ def add_type(ast):
               ast.kind = Int_Type
               return ast
            if isinstance(ast , Ast.Identifier):
+
               ast.kind  = ast.Decl.ty
               return ast
+           
+           
+
            if isinstance(ast , Ast.BinOp):
              ast.left =  add_type(ast.left)
              ast.right = add_type(ast.right)
+
 
              if ast.type == Ast_Type.LESS   or   ast.type == Ast_Type.LESS_EQUAL:
               ast.kind =  Int_Type
@@ -108,6 +113,10 @@ def add_type(ast):
               ast.expr = add_type(ast.expr)
   
               
+              if ast.type == Ast_Type.ND_MEMBER:
+
+                ast.kind  = ast.member.type
+
               
 
               if ast.type == Ast_Type.NEG:
@@ -123,8 +132,8 @@ def add_type(ast):
                  
 
               if ast.type == Ast_Type.DEREF:
-
-                if not ast.expr.kind.base:
+                
+                if  ast.expr.kind.base == None:
                     print('invalid deref')
                     sys.exit(-1)
 

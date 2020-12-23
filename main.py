@@ -7,7 +7,7 @@ f = open('teste.c' , 'r')
 file_content = f.read()
 
 parser    = parser.Parser(file_content)
-ast       = parser.make_ast()
+ast       = parser.Program()
 
 
 output_file = open('out.s' , 'w')
@@ -21,6 +21,7 @@ code     = code_gen.make_gen()
 
 code_gen = gen.Code_Gen(ast)
 code     = code_gen.make_gen()
+
 
 
 

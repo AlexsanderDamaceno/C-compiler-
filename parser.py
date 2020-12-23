@@ -15,6 +15,7 @@ class Parser():
         self.source = source
         self.tokens = None
         self.locals = []
+        self.globals = []
 
 
     def Advance(self):
@@ -27,6 +28,12 @@ class Parser():
         if  self.offset >= len(self.tokens):
                 return -1
         return self.tokens[self.offset]
+
+    def lookahead(self):
+        if  self.offset + 1 >= len(self.tokens):
+                return -1
+        return self.tokens[self.offset+1]        
+
 
     def check(self , token ,  expected_type):
        if token.type != expected_type:
@@ -216,21 +223,58 @@ class Parser():
             self.Advance()
 
             return Ast.Unary(Ast_Type.ADDR , self.unary())
-
+       
         return self.suffix()
 
 
+    def get_struct_member(self , ty , member_name):
+      for member in ty.members:
+        
+         if member.name == member_name:
+            return member
+      print('dont find member {}'.format(member_name) )
+      sys.exit(-1)      
+
+
+    def struct_ref(self , node , name):
+      lhs = sema.add_type(node)
+      
+      if lhs.Decl.ty.type != Ast.Ast_TypeKind.TY_STRUCT:
+          print('{}  not a struct'.format(lhs.name) )
+          sys.exit(-1)
+      node = Ast.Unary(Ast_Type.ND_MEMBER ,  lhs)
+          
+      node.member = self.get_struct_member(lhs.kind , name)
+      
+      return node
+
+
+
     def suffix(self):
+
         node = self.primary()
         
-        while self.peek().type == 'LBRACKET':
-          self.Advance()
-          index = self.expr()
-          self.check(self.peek() , 'RBRACKET')
-          node = Ast.Unary(Ast_Type.DEREF  , self.process_add(node , index))
-          self.Advance()
+       
+        while True:
+         
+         if self.peek().type ==  'LBRACKET': 
 
-        return node
+          self.Advance()
+         
+          index = self.expr()
+          
+          self.check(self.peek() , 'RBRACKET')
+          self.Advance()
+          node = Ast.Unary(Ast_Type.DEREF  , self.process_add(node , index))
+
+          continue
+         if self.peek().type ==  'POINT':
+
+          self.Advance()
+          node = self.struct_ref(node , self.Advance().value)
+          continue   
+         
+         return node
 
 
     def funcall(self , func_name):
@@ -280,6 +324,10 @@ class Parser():
        for Identifier in self.locals:
            if Identifier.Decl.name == Token.value:
                 return Ast.Identifier(Token.value , Identifier.Decl)
+       for Identifier in self.globals:
+           if Identifier.Decl.name == Token.value:
+                return Ast.Identifier(Token.value , Identifier.Decl)
+                
        print("Variable {}  undeclared  at line {} ".format(Token.value , Token.lineno))
        sys.exit(-1)
 
@@ -305,6 +353,7 @@ class Parser():
 
 
     def stmt(self):
+       
 
        if self.peek().type == 'RETURN':
            self.Advance()
@@ -316,6 +365,7 @@ class Parser():
            self.Advance()
            return self.compound_stmt()
        elif self.peek().type == 'IF':
+
            self.Advance()
            Token =  self.Advance()
            self.check(Token , 'LPAREN')
@@ -336,6 +386,7 @@ class Parser():
        elif self.peek().type == 'FOR':
             self.Advance()
 
+
             Token = self.Advance()
             self.check(Token , "LPAREN")
 
@@ -346,10 +397,12 @@ class Parser():
                 cond = self.expr()
             Token = self.Advance()
             self.check(Token , "SEMICOLON")
-
+           
             inc = None
+
             if self.peek().type != 'RPAREN':
                 inc = self.expr()
+
             Token = self.Advance()
 
             self.check(Token , "RPAREN")
@@ -377,7 +430,7 @@ class Parser():
 
 
 
-
+    
 
 
 
@@ -388,6 +441,9 @@ class Parser():
 
     #def suffix(self):
     #    if self.peek().type == 'LPAREN':
+
+
+   
 
 
     def get_number(self):
@@ -402,6 +458,7 @@ class Parser():
 
         if self.peek().type == 'LBRACKET':
            self.Advance()
+
            size  = self.get_number()
            self.check(self.peek() , 'RBRACKET')
            self.Advance()
@@ -428,6 +485,7 @@ class Parser():
       ty  = self.type_suffix(ty)
      
       ty.name =  name
+
       return ty
 
 
@@ -438,15 +496,52 @@ class Parser():
 
 
 
+    def struct_decl(self):
+
+          self.check(self.Advance() , 'LBRACE')
+          
+          members = []
+
+          struct_ty = Ast.Type(None , None , None)
+          
+          struct_ty.type = Ast.Ast_TypeKind.TY_STRUCT
+
+
+
+          offset = 0
+          while self.peek().type != 'RBRACE':
+
+              ty = self.declaration_specs()
+
+              while self.peek().type != 'SEMICOLON':
+                   ty = self.declarator(ty)
+                   struct_ty.members.append(Ast.Member(ty,   ty.name.value , offset))
+                   offset +=   ty.size
+
+              self.check(self.Advance() , 'SEMICOLON')  
+          struct_ty.size = offset    
+
+
+
+          self.check(self.Advance() , 'RBRACE')
+          return struct_ty
 
 
 
     def declaration_specs(self):
       Token = self.Advance()
-      self.check(Token ,  'INT')
-      return sema.Int_Type
+
+      if Token.type ==  'INT':
+          return sema.Int_Type
+     
+      if Token.type ==  'STRUCT':
+          
+         return self.struct_decl()    
+
 
     def declaration(self):
+
+    
       base_ty = self.declaration_specs()
 
       depth = 0
@@ -465,6 +560,7 @@ class Parser():
           ty = self.declarator(base_ty)
 
           var = Ast.Identifier(ty.name.value ,  Ast.Decl(ty.name.value, ty))
+          var.Decl.local = 1
           self.locals.append(var)
 
 
@@ -491,12 +587,13 @@ class Parser():
 
 
 
-
+    def is_type(self , tk):
+       return tk.type == 'INT' or tk.type == 'STRUCT' or tk.type  ==  'CHAR'
 
     def compound_stmt(self):
            stmt_list  = []
            while self.peek().type != 'RBRACE':
-                 if self.peek().type == 'INT':
+                 if self.is_type(self.peek()):
                     decls = self.declaration()
                     for decl in decls:
 
@@ -528,6 +625,7 @@ class Parser():
             
             
             node = Ast.Identifier(ty.name.value ,  Ast.Decl(ty.name.value , ty))
+            node.Decl.local =1
             params_list.append(node)
             self.locals.append(node)
         self.check(self.Advance() , 'RPAREN')
@@ -535,9 +633,9 @@ class Parser():
 
 
 
-    def function(self):
+    def function(self , ty):
 
-       ty = self.declaration_specs()
+       
        ty = self.declarator(ty)
        f_name = ty.name.value
       
@@ -547,6 +645,8 @@ class Parser():
        params = self.params()
        
        self.check(self.Advance() , 'LBRACE')
+
+      
        body = self.compound_stmt()
        locals = self.locals
        
@@ -554,14 +654,38 @@ class Parser():
 
 
 
+    def var_global(self , ty):
+
+        depth = 0
+        while self.peek().type !=  'SEMICOLON':
+                if depth == 1:
+                     self.check(self.peek() , 'COMMA')
+                     self.Advance()
+                     depth += 1
+                ty = self.declarator(ty)
+                var = Ast.Identifier(ty.name.value ,  Ast.Decl(ty.name.value, ty))
+                var.Decl.local = 0
+                self.globals.append(var)
+        self.check(self.Advance() , 'SEMICOLON')     
+        return   
 
 
 
 
-    def make_ast(self):
+    def Program(self):
       self.tokens = Tokenizer.make_token(self.source)
       function_list = []
       while self.peek().type != 'eof':
-          function_list.append(self.function())
-          self.locals = []
-      return function_list
+           ty = self.declaration_specs()
+
+           if self.lookahead().type == 'LPAREN': 
+                 function_list.append(self.function(ty))
+                 continue
+           self.var_global(ty)
+                 
+
+           
+                 
+           self.locals = []
+      
+      return Ast.Program(function_list ,  self.globals)

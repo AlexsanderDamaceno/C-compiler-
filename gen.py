@@ -27,34 +27,55 @@ class Code_Gen():
        return
 
   def load(self , Type):
+      
       if Type.type == Ast.Ast_TypeKind.TY_ARRAY:
-         
-          return
 
+              return
+      
       self.append_cmd("  mov (%rax), %rax")
       return
 
   def get_addr(self , node):
        
-      if isinstance(node , Ast.Unary):
-       if node.type == Ast_Type.DEREF:
+      if isinstance(node , Ast.Identifier):
+         if node.Decl.local:
+              self.append_cmd("  lea {}(%rbp) , %rax".format(node.Decl.offset))
+         else:
+             self.append_cmd("  lea {}(%rip) , %rax".format(node.Decl.name))  
+         return     
 
-       
+      
+
+      if isinstance(node , Ast.Unary):
+
+       if node.type == Ast_Type.DEREF: 
+      
         self.gen_expr(node.expr)
         return
+       if node.type == Ast_Type.ND_MEMBER:
+
+        self.get_addr(node.expr)
+        self.append_cmd("add ${} , %rax".format(node.member.offset))
+        return 
+
+     
+
       
-      self.append_cmd("  lea {}(%rbp) , %rax".format(node.Decl.offset))
+      
       return
   def gen_expr(self , ast):
-   
+    
      if isinstance(ast , Ast.Num):
          self.append_cmd("  mov ${} , %rax".format(ast.value))
          return
      if isinstance(ast , Ast.Identifier):
        
         self.get_addr(ast)
+
         self.load(ast.kind)      
         return
+
+      
 
 
      if isinstance(ast , Ast.Function_Call):
@@ -74,17 +95,25 @@ class Code_Gen():
          self.append_cmd("  call {}".format(ast.name))
          return
 
+
+     if ast.type == Ast_Type.ND_MEMBER:
+
+        self.get_addr(ast)
+        
+        self.load(ast.kind)
+        return
          
      if ast.type == Ast_Type.ADDR:
 
        self.get_addr(ast.expr)
        return
-
+    
      if ast.type == Ast_Type.DEREF:
-       
+           
        self.gen_expr(ast.expr)
 
        self.load(ast.kind)
+       
        return
 
 
@@ -97,10 +126,11 @@ class Code_Gen():
 
 
      if isinstance(ast , Ast.Assign):
-          
+            
             self.get_addr(ast.left)
             
             self.push('  rax')
+
             self.gen_expr(ast.right)
             self.pop('  rdi')
             self.append_cmd('  mov %rax , (%rdi)')
@@ -215,7 +245,7 @@ class Code_Gen():
 
   def determine_var_offset(self):
 
-    for  function in self.prog:
+    for  function in self.prog.functions:
       offset = 0
       for var in function.locals:
           offset += var.Decl.ty.size
@@ -224,11 +254,25 @@ class Code_Gen():
       
     return
 
+  def emit_data(self):
+     for var in self.prog.globals:
+            self.append_cmd('.data')
+            #self.append_cmd('.globl {} '.format(var.Decl.name) )
+            self.append_cmd('{}:'.format(var.Decl.name))
+            self.append_cmd('.zero {}'.format(var.Decl.ty.size))
+     return       
+
+
+
+
 
   def  make_gen(self):
        stack_size =  self.determine_var_offset()
+       self.emit_data()
 
-       for  function in self.prog:
+
+
+       for  function in self.prog.functions:
          self.current_func  = function
          self.append_cmd('\n')
          self.append_cmd(".globl {}".format(function.func_name))

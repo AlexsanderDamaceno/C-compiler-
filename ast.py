@@ -24,13 +24,19 @@ class Ast_Type():
 	DEREF            = 19
 	ADDR             = 20
 	AST_FUNCALL      = 21
+	ND_MEMBER        = 22
 
 class Ast_TypeKind():
    TY_INT       = 1
    TY_POINTER   = 2
    TY_FUNCTION  = 3
    TY_ARRAY     = 4
+   TY_STRUCT    = 5
+  
 
+
+
+   
 
 
 
@@ -38,6 +44,10 @@ class Ast():
 	pass
 
 
+class Program():
+   def __init__(self, functions , globals):
+	    self.functions = functions
+	    self.globals = globals
 class Function_Call():
    def __init__(self, name , args):
 	    self.name = name
@@ -54,6 +64,7 @@ class Function(Ast):
 		self.stack_size = 0
 
 
+
 class Object():
   def __init__(self , name , ty):
   	   self.ty     =  ty
@@ -64,6 +75,8 @@ class Decl():
 	  self.name   = name
 	  self.ty     = ty
 	  self.offset = -1
+	  self.local  = 0
+   
 
 class Identifier(Ast):
 
@@ -111,6 +124,7 @@ class Unary(Ast):
   	  self.type    = type
   	  self.expr    = expr
   	  self.kind    = None
+  	  self.member  = None
 
 
 class For(Ast):
@@ -139,6 +153,12 @@ class Num(Ast):
 	   self.kind   = None
 
 
+class Member(Ast):
+    def __init__(self ,  type  , name , offset):
+        self.type = type
+        self.name = name 
+        self.offset = offset
+        
 class Type(Ast):
   def __init__(self ,  type  , base , size):
   	self.type = type
@@ -146,3 +166,4 @@ class Type(Ast):
   	self.size = size
   	self.array_len = 0
   	self.name = None
+  	self.members = []

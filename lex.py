@@ -29,7 +29,9 @@ tokens = (
  'COMMA' , 
  'LBRACKET' , 
  'RBRACKET' , 
- 'SIZEOF'
+ 'SIZEOF' , 
+ 'STRUCT' , 
+ 'POINT' 
  
 )
 
@@ -40,7 +42,8 @@ reserved = {
 'for'    : 'FOR' , 
 'while'  : 'WHILE' , 
 'int'    : 'INT' , 
-'sizeof' : 'SIZEOF'
+'sizeof' : 'SIZEOF' , 
+'struct' : 'STRUCT'
 }
 
 
@@ -62,9 +65,9 @@ t_ASSIGN        = r'\='
 t_LBRACE        = r'\{'
 t_RBRACE        = r'\}'
 t_COMMA         = r'\,'
-t_LBRACKET        = r'\['
-t_RBRACKET        = r'\]'
-
+t_LBRACKET      = r'\['
+t_RBRACKET      = r'\]'
+t_POINT         = r'\.'
 digit           = r'([0-9])'
 nondigit        = r'([_A-Za-z])'
 
